@@ -1,65 +1,173 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { getLatestEntry, type EntryRecord } from "@/lib/db";
+import type { BaiTier } from "@/lib/indices";
+
+type LoadState =
+  | { status: "loading" }
+  | { status: "empty" }
+  | { status: "ready"; entry: EntryRecord };
+
+const TIER_BLURB: Record<BaiTier, string> = {
+  Aligned: "You are sitting near the center of your healthy range.",
+  Centered: "You are close to your healthy range — small shifts matter.",
+  Building: "You are building toward your healthy range. One step at a time.",
+  Exploring: "You are exploring the path. Every measurement is signal, not verdict.",
+  Awakening: "You are just becoming aware. Awareness is where every change starts.",
+};
+
+function formatDate(ms: number): string {
+  return new Date(ms).toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
+export default function Dashboard() {
+  const [state, setState] = useState<LoadState>({ status: "loading" });
+
+  useEffect(() => {
+    let cancelled = false;
+    getLatestEntry()
+      .then((entry) => {
+        if (cancelled) return;
+        setState(entry ? { status: "ready", entry } : { status: "empty" });
+      })
+      .catch(() => {
+        if (!cancelled) setState({ status: "empty" });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (state.status === "loading") {
+    return (
+      <div className="flex flex-1 items-center justify-center text-zinc-500">
+        Loading your history…
+      </div>
+    );
+  }
+
+  if (state.status === "empty") {
+    return (
+      <section className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
+        <h1 className="text-3xl font-semibold tracking-tight">
+          Welcome to BAI Health
+        </h1>
+        <p className="max-w-md text-zinc-600 dark:text-zinc-400">
+          Take your first measurement to see your BMI, BRI, and a combined
+          Body Awareness Index framed around your own progress.
+        </p>
+        <Link
+          href="/measure"
+          className="rounded-full bg-zinc-900 px-6 py-3 text-sm font-medium text-zinc-50 transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+        >
+          Take first measurement
+        </Link>
+      </section>
+    );
+  }
+
+  const { entry } = state;
+  const baiPct = Math.round(entry.bai);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <section className="flex flex-1 flex-col gap-8">
+      <header className="flex items-baseline justify-between">
+        <h1 className="text-2xl font-semibold tracking-tight">Latest</h1>
+        <span className="text-sm text-zinc-500">{formatDate(entry.createdAt)}</span>
+      </header>
+
+      <div className="rounded-2xl border border-zinc-200 bg-white p-8 dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="flex items-center gap-6">
+          <TierRing score={baiPct} />
+          <div>
+            <div className="text-4xl font-semibold tracking-tight">
+              {tierFromBai(entry.bai)}
+            </div>
+            <p className="mt-1 max-w-sm text-sm text-zinc-600 dark:text-zinc-400">
+              {TIER_BLURB[tierFromBai(entry.bai)]}
+            </p>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+
+        <dl className="mt-8 grid grid-cols-3 gap-6 border-t border-zinc-200 pt-6 dark:border-zinc-800">
+          <Stat label="BAI" value={`${baiPct} / 100`} />
+          <Stat label="BMI" value={entry.bmi.toFixed(1)} />
+          <Stat label="BRI" value={entry.bri.toFixed(2)} />
+        </dl>
+      </div>
+
+      <div className="flex gap-3">
+        <Link
+          href="/measure"
+          className="rounded-full bg-zinc-900 px-5 py-2.5 text-sm font-medium text-zinc-50 hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+        >
+          Record another
+        </Link>
+        <Link
+          href="/settings"
+          className="rounded-full border border-zinc-300 px-5 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+        >
+          Settings
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function tierFromBai(bai: number): BaiTier {
+  if (bai >= 85) return "Aligned";
+  if (bai >= 65) return "Centered";
+  if (bai >= 45) return "Building";
+  if (bai >= 25) return "Exploring";
+  return "Awakening";
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-xs uppercase tracking-wide text-zinc-500">{label}</dt>
+      <dd className="mt-1 font-mono text-lg tabular-nums">{value}</dd>
     </div>
+  );
+}
+
+function TierRing({ score }: { score: number }) {
+  const radius = 48;
+  const circumference = 2 * Math.PI * radius;
+  const clamped = Math.max(0, Math.min(100, score));
+  const dash = (clamped / 100) * circumference;
+  return (
+    <svg
+      viewBox="0 0 120 120"
+      className="h-24 w-24 -rotate-90"
+      aria-label={`Progress ring at ${score} of 100`}
+      role="img"
+    >
+      <circle
+        cx="60"
+        cy="60"
+        r={radius}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="8"
+        className="text-zinc-200 dark:text-zinc-800"
+      />
+      <circle
+        cx="60"
+        cy="60"
+        r={radius}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="8"
+        strokeLinecap="round"
+        strokeDasharray={`${dash} ${circumference - dash}`}
+        className="text-emerald-500"
+      />
+    </svg>
   );
 }
