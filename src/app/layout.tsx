@@ -46,6 +46,12 @@ export default function RootLayout({
                 Measure
               </Link>
               <Link
+                href="/history"
+                className="hover:text-zinc-900 dark:hover:text-zinc-100"
+              >
+                History
+              </Link>
+              <Link
                 href="/settings"
                 className="hover:text-zinc-900 dark:hover:text-zinc-100"
               >

@@ -137,6 +137,12 @@ export async function deleteAllEntries(): Promise<void> {
   await db.clear('entries');
 }
 
+/** Remove a single entry by id. Missing ids are a no-op. */
+export async function deleteEntry(id: number): Promise<void> {
+  const db = await openDatabase();
+  await db.delete('entries', id);
+}
+
 // --- Profile ---
 
 export type ProfileUpdate = Partial<

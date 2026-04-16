@@ -4,6 +4,7 @@ import {
   _resetDbConnection,
   addEntry,
   deleteAllEntries,
+  deleteEntry,
   getAllEntries,
   getEntryCount,
   getLatestEntry,
@@ -86,6 +87,23 @@ describe('entries store', () => {
     expect(await getEntryCount()).toBe(2);
     await deleteAllEntries();
     expect(await getEntryCount()).toBe(0);
+  });
+
+  it('deleteEntry removes only the matching record', async () => {
+    const id1 = await addEntry(makeEntry({ createdAt: 1000, bai: 50 }));
+    const id2 = await addEntry(makeEntry({ createdAt: 2000, bai: 70 }));
+    await deleteEntry(id1);
+
+    const remaining = await getAllEntries();
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].id).toBe(id2);
+    expect(remaining[0].bai).toBe(70);
+  });
+
+  it('deleteEntry is a no-op for unknown ids', async () => {
+    await addEntry(makeEntry());
+    await deleteEntry(9999);
+    expect(await getEntryCount()).toBe(1);
   });
 
   it('persists snapshot midpoints alongside the entry', async () => {

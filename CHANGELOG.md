@@ -25,8 +25,10 @@ section, bump the `version` field in `package.json`, commit, then tag the commit
 - `/` dashboard rendering the latest measurement: tier word, progress ring (0–100), BAI / BMI / BRI values, and an encouraging one-line blurb per tier. Empty state routes first-time users to `/measure`.
 - `/measure` form for height / weight / waist (+ optional hip), metric ↔ imperial toggle, client-side compute via `computeBai`, persistence to IndexedDB, and an inline result card on success.
 - `/settings` page: units toggle, optional sex and age-band dropdowns (stored as the singleton profile), current-cohort indicator with a v1-estimates / pediatric-fallback notice where applicable, and a clear-all-history action.
-- Root layout now brands the app (BAI Health, top-nav for Dashboard / Measure / Settings) and includes a "Not medical advice" footer.
-- Unit tests covering conversions, reference resolution, alignment anchor points, tier boundaries, a midpoint-body sanity check, and the IndexedDB layer (61 tests total, all passing).
+- Root layout now brands the app (BAI Health, top-nav for Dashboard / Measure / History / Settings) and includes a "Not medical advice" footer.
+- `/history` page listing past entries newest-first, with a hand-rolled SVG line chart of BAI over time and optional BMI/BRI overlays (min-max normalized per series for shape comparison, with a caption explaining the normalization). Per-entry delete with a confirm dialog.
+- `deleteEntry(id)` added to `src/lib/db.ts` with tests covering the happy path and the unknown-id no-op.
+- Unit tests covering conversions, reference resolution, alignment anchor points, tier boundaries, a midpoint-body sanity check, and the IndexedDB layer (63 tests total, all passing).
 
 ## [0.1.0] - 2026-04-16
 ### Added
