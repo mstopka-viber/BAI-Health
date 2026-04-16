@@ -2,13 +2,27 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getLatestEntry, type EntryRecord } from "@/lib/db";
+import { getAllEntries, type EntryRecord } from "@/lib/db";
 import type { BaiTier } from "@/lib/indices";
 
 type LoadState =
   | { status: "loading" }
   | { status: "empty" }
-  | { status: "ready"; entry: EntryRecord };
+  | { status: "ready"; entry: EntryRecord; previous?: EntryRecord };
+
+/** Minimum BAI-point delta to treat as a direction change instead of flat. */
+const TREND_FLAT_THRESHOLD = 1;
+type TrendDirection = "up" | "flat" | "down";
+
+function trendFor(
+  latest: EntryRecord,
+  previous: EntryRecord | undefined,
+): { direction: TrendDirection; delta: number } | null {
+  if (!previous) return null;
+  const delta = latest.bai - previous.bai;
+  if (Math.abs(delta) < TREND_FLAT_THRESHOLD) return { direction: "flat", delta };
+  return { direction: delta > 0 ? "up" : "down", delta };
+}
 
 const TIER_BLURB: Record<BaiTier, string> = {
   Aligned: "You are sitting near the center of your healthy range.",
@@ -30,10 +44,18 @@ export default function Dashboard() {
 
   useEffect(() => {
     let cancelled = false;
-    getLatestEntry()
-      .then((entry) => {
+    getAllEntries()
+      .then((entries) => {
         if (cancelled) return;
-        setState(entry ? { status: "ready", entry } : { status: "empty" });
+        if (entries.length === 0) {
+          setState({ status: "empty" });
+          return;
+        }
+        // getAllEntries returns ascending by createdAt, so latest is last.
+        const entry = entries[entries.length - 1];
+        const previous =
+          entries.length >= 2 ? entries[entries.length - 2] : undefined;
+        setState({ status: "ready", entry, previous });
       })
       .catch(() => {
         if (!cancelled) setState({ status: "empty" });
@@ -71,8 +93,9 @@ export default function Dashboard() {
     );
   }
 
-  const { entry } = state;
+  const { entry, previous } = state;
   const baiPct = Math.round(entry.bai);
+  const trend = trendFor(entry, previous);
 
   return (
     <section className="flex flex-1 flex-col gap-8">
@@ -95,7 +118,11 @@ export default function Dashboard() {
         </div>
 
         <dl className="mt-8 grid grid-cols-3 gap-6 border-t border-zinc-200 pt-6 dark:border-zinc-800">
-          <Stat label="BAI" value={`${baiPct} / 100`} />
+          <Stat
+            label="BAI"
+            value={`${baiPct} / 100`}
+            trailing={trend ? <TrendArrow trend={trend} /> : undefined}
+          />
           <Stat label="BMI" value={entry.bmi.toFixed(1)} />
           <Stat label="BRI" value={entry.bri.toFixed(2)} />
         </dl>
@@ -127,12 +154,96 @@ function tierFromBai(bai: number): BaiTier {
   return "Awakening";
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({
+  label,
+  value,
+  trailing,
+}: {
+  label: string;
+  value: string;
+  trailing?: React.ReactNode;
+}) {
   return (
     <div>
       <dt className="text-xs uppercase tracking-wide text-zinc-500">{label}</dt>
-      <dd className="mt-1 font-mono text-lg tabular-nums">{value}</dd>
+      <dd className="mt-1 flex items-center gap-2 font-mono text-lg tabular-nums">
+        <span>{value}</span>
+        {trailing}
+      </dd>
     </div>
+  );
+}
+
+function TrendArrow({
+  trend,
+}: {
+  trend: { direction: TrendDirection; delta: number };
+}) {
+  const rounded = Math.round(Math.abs(trend.delta));
+  const label =
+    trend.direction === "flat"
+      ? "Unchanged from previous entry"
+      : trend.direction === "up"
+        ? `Up ${rounded} point${rounded === 1 ? "" : "s"} from previous entry`
+        : `Down ${rounded} point${rounded === 1 ? "" : "s"} from previous entry`;
+  const color =
+    trend.direction === "up"
+      ? "text-emerald-600 dark:text-emerald-400"
+      : trend.direction === "down"
+        ? "text-amber-600 dark:text-amber-400"
+        : "text-zinc-500";
+
+  return (
+    <span
+      aria-label={label}
+      title={label}
+      className={`inline-flex items-center ${color}`}
+    >
+      {trend.direction === "up" && (
+        <svg
+          viewBox="0 0 12 12"
+          className="h-3.5 w-3.5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M6 10V2" />
+          <path d="M2 6l4-4 4 4" />
+        </svg>
+      )}
+      {trend.direction === "down" && (
+        <svg
+          viewBox="0 0 12 12"
+          className="h-3.5 w-3.5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M6 2v8" />
+          <path d="M2 6l4 4 4-4" />
+        </svg>
+      )}
+      {trend.direction === "flat" && (
+        <svg
+          viewBox="0 0 12 12"
+          className="h-3.5 w-3.5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M2 6h8" />
+        </svg>
+      )}
+    </span>
   );
 }
 
