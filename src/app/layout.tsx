@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -17,6 +18,18 @@ export const metadata: Metadata = {
   title: "BAI Health",
   description:
     "Body Awareness Index — a friendlier take on BMI and BRI, focused on your own journey rather than a clinical verdict.",
+  appleWebApp: {
+    capable: true,
+    title: "BAI Health",
+    statusBarStyle: "default",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fafafa" },
+    { media: "(prefers-color-scheme: dark)", color: "#18181b" },
+  ],
 };
 
 export default function RootLayout({
@@ -72,6 +85,7 @@ export default function RootLayout({
         <footer className="border-t border-zinc-200 py-4 text-center text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
           Not medical advice. Measurements are stored locally on your device.
         </footer>
+        <ServiceWorkerRegister />
       </body>
     </html>
   );

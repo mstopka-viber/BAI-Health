@@ -17,6 +17,15 @@ section, bump the `version` field in `package.json`, commit, then tag the commit
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-16
+### Added
+- `src/app/manifest.ts` generates the web app manifest at `/manifest.webmanifest`, marking the app installable with `display: standalone`, orientation hint, theme + background colors, and references to the generated PNG icons.
+- `src/app/icon.tsx` uses `generateImageMetadata` + `next/og` `ImageResponse` to produce 192×192 and 512×512 PNG icons plus a maskable 512×512 variant (60% safe zone so Android mask crops don't clip the mark). `src/app/apple-icon.tsx` produces the 180×180 iOS touch icon with the same visual mark.
+- `public/sw.js` — hand-rolled service worker. Pre-caches the five app routes on install, network-first for navigations with cache fallback, stale-while-revalidate for same-origin static assets (`/_next/static/*`, fonts, images). Cleans up old caches on activate.
+- `src/components/ServiceWorkerRegister.tsx` registers the service worker on first client render in production only (development registration is skipped so Turbopack HMR doesn't fight a cache-first SW).
+- `next.config.ts` sets `Cache-Control: no-cache` and the correct MIME type on `/sw.js` so SW updates propagate.
+- Root layout exports a `viewport` with per-scheme theme colors and `appleWebApp` metadata, and mounts the SW registration component.
+
 ## [0.2.0] - 2026-04-16
 ### Added
 - Vitest test runner (`npm test`, `npm run test:run`) configured for a Node environment.
