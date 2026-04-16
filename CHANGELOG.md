@@ -16,6 +16,12 @@ section, bump the `version` field in `package.json`, commit, then tag the commit
 ---
 
 ## [Unreleased]
+### Added
+- Vitest test runner (`npm test`, `npm run test:run`) configured for a Node environment.
+- `src/lib/units.ts` — imperial ↔ metric conversion helpers and a typed `toMetric` normalizer with input validation.
+- `src/lib/references.ts` — cohort reference profiles (universal + 8 sex×age combos) driving the BAI alignment math. Universal profile sourced from WHO (BMI) and Thomas 2013 (BRI); adult sex/age combos are v1 estimates flagged `verified: false` pending verification against primary sources.
+- `src/lib/indices.ts` — pure implementations of BMI, BRI (Thomas 2013), a piecewise-linear alignment score, the weighted BAI, and the 5-tier word mapping (Aligned / Centered / Building / Exploring / Awakening).
+- Unit tests covering conversions, reference resolution, alignment anchor points, tier boundaries, and a midpoint-body sanity check (49 tests total).
 
 ## [0.1.0] - 2026-04-16
 ### Added
